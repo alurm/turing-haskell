@@ -1,14 +1,10 @@
 module Main where
 
-import qualified Lib
+import qualified Turing
 
 main :: IO ()
 main = do
-  -- map <- runIdentity $ do
-  --   map <- Map.empty
-  --   map <- Map.insert 3 4 map
-  --   map
-  print Lib.Left
-  print Lib.Left
-  putStrLn "Hello, world!"
-  -- print Lib.x
+  putStr $ Turing.log '0' Turing.exampleState1 Turing.emptyTape
+  putStr $ Turing.logn 5 '0' Turing.exampleLoop Turing.emptyTape
+  putStr $ Turing.logn 10 '0' Turing.exampleLoop Turing.emptyTape
+  putStr $ drop 5 $ Turing.logn 8 '0' Turing.exampleToggle1 Turing.emptyTape
