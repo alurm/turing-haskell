@@ -5,12 +5,13 @@
 
 module Turing (log, logn, exampleLoop, emptyTape, exampleToggle1, exampleState1) where
 
-import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (HashSet)
 import Data.Hashable (Hashable)
 import Data.Maybe (fromMaybe)
 import Prelude hiding (Left, Right, head, log, read)
+import Data.Aeson
+import GHC.Generics
 
 -- https://en.wikipedia.org/wiki/Turing_machine#Formal_definition
 -- https://cs.stackexchange.com/questions/45589/why-is-the-tape-not-part-of-the-definition-of-a-turing-machine
@@ -29,18 +30,27 @@ data TapeModel symbol = TapeModel
 
 data State symbol = State
   { write :: symbol,
-    next :: HashMap symbol (State symbol),
+    next :: symbol -> Maybe (State symbol),
     direction :: Direction
   }
+
+-- TODO
+
+data StateIndirect symbol = StateIndirect
+  { write :: symbol,
+    next :: [(symbol, Int)],
+    direction :: Direction
+  }
+
+exampleIndirect = HashMap.fromList [
+    (0 :: Int, 0 :: Int)
+  ]
 
 exampleState1 :: State Char
 exampleState1 =
   State
     { write = '1',
-      next =
-        HashMap.fromList
-          [ ('0', exampleState2)
-          ],
+      next = stateFromList [('0', exampleState2)],
       direction = Right
     }
 
@@ -48,7 +58,7 @@ exampleState2 :: State Char
 exampleState2 =
   State
     { write = '0',
-      next = HashMap.fromList [('0', exampleState1)],
+      next = stateFromList [('0', exampleState1)],
       direction = Left
     }
 
@@ -56,7 +66,7 @@ exampleLoop :: State Char
 exampleLoop =
   State
     { write = '1',
-      next = HashMap.fromList [('0', exampleLoop)],
+      next = stateFromList [('0', exampleLoop)],
       direction = Right
     }
 
@@ -64,10 +74,7 @@ exampleToggle1 :: State Char
 exampleToggle1 =
   State
     { write = '1',
-      next =
-        HashMap.fromList
-          [ ('0', exampleToggle10)
-          ],
+      next = stateFromList [('0', exampleToggle10)],
       direction = Right
     }
 
@@ -75,10 +82,7 @@ exampleToggle10 :: State Char
 exampleToggle10 =
   State
     { write = '0',
-      next =
-        HashMap.fromList
-          [ ('0', exampleToggle0)
-          ],
+      next = stateFromList [('0', exampleToggle0)],
       direction = Left
     }
 
@@ -86,10 +90,7 @@ exampleToggle0 :: State Char
 exampleToggle0 =
   State
     { write = '0',
-      next =
-        HashMap.fromList
-          [ ('1', exampleToggle00)
-          ],
+      next = stateFromList [('1', exampleToggle00)],
       direction = Right
     }
 
@@ -97,7 +98,7 @@ exampleToggle00 :: State Char
 exampleToggle00 =
   State
     { write = '0',
-      next = HashMap.fromList [('0', exampleToggle1)],
+      next = stateFromList [('0', exampleToggle1)],
       direction = Left
     }
 
@@ -117,7 +118,7 @@ interpret1 blank state tape = case maybeNext of
       )
   where
     current = read blank tape
-    maybeNext = HashMap.lookup current state.next
+    maybeNext = state.next current
 
 interprets :: (Hashable symbol) => symbol -> State symbol -> Tape symbol -> [Tape symbol]
 interprets blank state tape = case next of
@@ -135,9 +136,7 @@ log c s t = concatMap ((++ "\n") . show) all'
     all' = interprets c s t
 
 logn :: Int -> Char -> State Char -> Tape Char -> String
-logn n c s t = concatMap ((++ "\n") . show) $ take n $ all'
-  where
-    all' = interprets c s t
+logn n c s t = concatMap ((++ "\n") . show) $ take n $ interprets c s t
 
 interpret :: (Hashable symbol) => symbol -> State symbol -> Tape symbol -> Tape symbol
 interpret blank state tape = case maybeNext of
@@ -153,7 +152,7 @@ interpret blank state tape = case maybeNext of
           }
   where
     current = read blank tape
-    maybeNext = HashMap.lookup current state.next
+    maybeNext = state.next current
 
 --
 -- Direction
@@ -217,3 +216,10 @@ toRight tape = toRight' tape.left $ Nothing : map Just tape.right
   where
     toRight' [] r = r
     toRight' (x : xs) r = toRight' xs $ Just x : r
+
+--
+-- Functionalization
+--
+
+stateFromList :: (Hashable symbol) => [(symbol, State symbol)] -> symbol -> Maybe (State symbol)
+stateFromList m s = HashMap.lookup s $ HashMap.fromList m

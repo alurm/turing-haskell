@@ -1,0 +1,2 @@
+#!/bin/sh
+cabal repl --repl-options -Wno-type-defaults "$@"
