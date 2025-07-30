@@ -1,6 +1,4 @@
-# Interpreter for Turing machines in Haskell (WIP)
-
-(These instructions may be outdated by now.)
+# Turing machine interpreter in Haskell
 
 ```text
 turing-haskell ) nix run .
