@@ -63,7 +63,6 @@ executable turing-haskell
     -- Modules included in this executable, other than Main.
     other-modules:
         Turing
-        Json
 
     -- LANGUAGE extensions used by modules in this package.
     default-extensions:
